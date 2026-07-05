@@ -24,60 +24,73 @@ import { StatusCard } from "../../components/dashboard/StatusCard";
 import { ChartsSection } from "../../components/dashboard/ChartsSection";
 
 export function DashboardPage() {
-    const [, setOverview] = useState<any>(null);
-    const [metrics, setMetrics] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+  const [, setOverview] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+  useEffect(() => {
     async function loadDashboard() {
-      socket.connect();
-
-      socket.on("job:created", () => {
-        toast.success("Live update: new job created");
-        loadDashboard();
-      });
-
-      return () => {
-        socket.off("job:created");
-        socket.disconnect();
-        clearInterval(interval);
-      };
-        try {
+      try {
         const [overviewData, metricsData] = await Promise.all([
-            getDashboardOverview(),
-            getSystemMetrics(),
+          getDashboardOverview(),
+          getSystemMetrics(),
         ]);
 
         setOverview(overviewData);
         setMetrics(metricsData);
-        } catch (err) {
-        console.error(err);
-        } finally {
+      } catch (err) {
+        console.error("Dashboard load failed:", err);
+
+        setOverview({});
+        setMetrics({
+          totalJobs: 0,
+          completedJobs: 0,
+          workersOnline: 0,
+          workersOffline: 0,
+          successRate: 0,
+          queuedJobs: 0,
+          scheduledJobs: 0,
+          runningJobs: 0,
+          retryingJobs: 0,
+          deadLetterJobs: 0,
+        });
+      } finally {
         setLoading(false);
-        }
+      }
     }
+
+    socket.connect();
+
+    socket.on("job:created", () => {
+      toast.success("Live update: new job created");
+      loadDashboard();
+    });
 
     loadDashboard();
 
     const interval = setInterval(loadDashboard, 10000);
 
-    return () => clearInterval(interval);
-    }, []);
+    return () => {
+      socket.off("job:created");
+      socket.disconnect();
+      clearInterval(interval);
+    };
+  }, []);
 
-    if (loading) {
-      return (
-        <>
-          <div className="stats-grid">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
+  if (loading || !metrics) {
+    return (
+      <>
+        <div className="stats-grid">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
 
-          <SkeletonList count={5} />
-        </>
-      );
-    }
+        <SkeletonList count={5} />
+      </>
+    );
+  }
 
   return (
     <div className="dashboard-grid">
@@ -120,6 +133,7 @@ export function DashboardPage() {
 
       <div className="status-grid">
         <ChartsSection metrics={metrics} />
+
         <StatusCard title="Queue Health">
           <div className="status-row">
             <span className="status-label">Queued Jobs</span>
