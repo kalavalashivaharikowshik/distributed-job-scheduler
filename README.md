@@ -96,3 +96,86 @@ distributed-job-scheduler/
 │       └── types/
 │
 └── README.md
+
+Backend Setup
+cd backend
+npm install
+
+Create .env:
+
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/job_scheduler?schema=public"
+PORT=5000
+JWT_SECRET="super-secret-change-this"
+JWT_EXPIRES_IN="7d"
+NODE_ENV="development"
+FRONTEND_URL="http://localhost:5173"
+
+Run migrations:
+
+npx prisma migrate dev
+npx prisma generate
+
+Start backend:
+
+npm run dev
+
+Health check:
+
+GET http://localhost:5000/health
+Worker Setup
+cd worker
+npm install
+npm run prisma:generate
+
+Create .env:
+
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/job_scheduler?schema=public"
+WORKER_NAME="local-worker-1"
+QUEUE_ID="your_queue_id"
+WORKER_CONCURRENCY=3
+POLL_INTERVAL_MS=2000
+HEARTBEAT_INTERVAL_MS=10000
+
+Start worker:
+
+npm run dev
+Frontend Setup
+cd frontend
+npm install
+
+Create .env:
+
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+
+Start frontend:
+
+npm run dev
+Deployment
+Backend deployed on Render as a Web Service.
+Worker deployed on Render as a Background Worker.
+PostgreSQL deployed on Render PostgreSQL.
+Frontend deployed on Vercel.
+Job Lifecycle
+QUEUED → CLAIMED → RUNNING → COMPLETED
+
+Failure lifecycle:
+
+RUNNING → RETRYING → QUEUED
+
+Permanent failure lifecycle:
+
+RUNNING → DEAD_LETTER
+Bonus Features Implemented
+Rate limiting using express-rate-limit
+Basic role-based access control using organization roles
+WebSocket live update support using Socket.IO
+
+Replace these:
+
+```text
+YOUR_VERCEL_FRONTEND_LINK
+YOUR_RENDER_BACKEND_LINK
+YOUR_GITHUB_REPO_LINK
+
+with your real deployed links.
