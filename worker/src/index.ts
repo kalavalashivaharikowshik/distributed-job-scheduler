@@ -5,9 +5,35 @@ import { startHeartbeat } from "./heartbeat";
 import { claimJob } from "./job-claimer";
 import { runJob } from "./job-runner";
 import { setupGracefulShutdown } from "./graceful-shutdown";
+import express from "express";
 
 let isPolling = true;
 let activeJobs = 0;
+
+function startHealthServer() {
+  const app = express();
+  const port = process.env.PORT || 5001;
+
+  app.get("/", (_req, res) => {
+    res.json({
+      status: "ok",
+      service: "distributed-job-scheduler-worker",
+    });
+  });
+
+  app.get("/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      service: "distributed-job-scheduler-worker",
+      workerName: config.workerName,
+      queueId: config.queueId,
+    });
+  });
+
+  app.listen(port, () => {
+    logger.info(`Worker health server running on port ${port}`);
+  });
+}
 
 async function registerWorker() {
   const worker = await prisma.worker.create({
@@ -54,6 +80,7 @@ async function poll(workerId: string) {
 }
 
 async function main() {
+  startHealthServer();
   if (!config.queueId) {
     throw new Error("QUEUE_ID is required in worker/.env");
   }
